@@ -1,6 +1,7 @@
 from pyxavi import Config
 from .point import Point
 
+
 class Line:
 
     point_1: Point = None
@@ -12,10 +13,10 @@ class Line:
 
     def fromTuple(positions: tuple):
         return Line(Point(positions[0], positions[1]), Point(positions[2], positions[3]))
-    
+
     def to_image_line(self) -> list[tuple]:
         return [self.point_1.to_image_point(), self.point_2.to_image_point()]
-    
+
     def is_valid(self, config: Config) -> bool:
         return True if self.point_1.is_valid(config) and \
                         self.point_2.is_valid(config) and \

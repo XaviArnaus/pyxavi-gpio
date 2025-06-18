@@ -1,10 +1,12 @@
 from pyxavi import Config
 from .point import Point
 
+
 class OffsetRectangle:
 
     OUTER = "outer"
     INNER = "inner"
+
 
 class Rectangle:
 
@@ -17,7 +19,7 @@ class Rectangle:
 
     def fromTuple(positions: tuple):
         return Rectangle(Point(positions[0], positions[1]), Point(positions[2], positions[3]))
-    
+
     # def with_offset(self, offset: int, direction: OffsetRectangle = OffsetRectangle.INNER):
     #     # The horizontal
     #     if self.point_1.x < self.point_2.x:
@@ -44,7 +46,7 @@ class Rectangle:
     #                 raise RuntimeError("Rectangle too big for such an OUTER offset")
     #     elif self.point_1.x == self.point_2.x and direction == OffsetRectangle.INNER:
     #         raise RuntimeError("The X are the same, impossible for an INNER")
-
+    #
     #     # The vertical
     #     if self.point_1.y < self.point_2.y:
     #         if direction == OffsetRectangle.INNER:
@@ -70,12 +72,12 @@ class Rectangle:
     #                 raise RuntimeError("Rectangle too big for such an OUTER offset")
     #     elif self.point_1.y == self.point_2.y and direction == OffsetRectangle.INNER:
     #         raise RuntimeError("The Y are the same, impossible for an INNER")
-
+    #
     #     return Rectangle(Point(point_a_x, point_a_y), Point(point_b_x, point_b_y))
-    
+
     def to_image_rectangle(self) -> list[tuple]:
         return [self.point_1.to_image_point(), self.point_2.to_image_point()]
-    
+
     def is_valid(self, config: Config) -> bool:
         return True if self.point_1.is_valid(config) and \
                         self.point_2.is_valid(config) and \

@@ -60,6 +60,11 @@ split_before_expression_after_opening_paren = 1
 split_before_first_argument = 1
 split_before_logical_operator = 0
 
+[tool.yapfignore]
+ignore_patterns = [
+  'pyxavi_gpio/vendor/**',
+]
+
 [tool.coverage.report]
 skip_empty = true
 branch = true

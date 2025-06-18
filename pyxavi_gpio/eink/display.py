@@ -3,11 +3,12 @@ import os
 import logging
 import time
 
-from PIL import Image,ImageDraw,ImageFont
+from PIL import Image, ImageDraw, ImageFont
 
-from pyxavi import Config, Logger, Dictionary
+from pyxavi import Config, Logger, Dictionary, dd
 
 from ..dto.point import Point
+
 
 class EinkDisplay:
 
@@ -27,12 +28,17 @@ class EinkDisplay:
     DEFAULT_FONT_MEDIUM_SIZE = 14
     DEFAULT_FONT_SMALL_SIZE = 10
 
-    DEFAULT_STORAGE_PATH = "sotrage/"
+    DEFAULT_STORAGE_PATH = "storage/"
     DEFAULT_MOCKED_IMAGES_PATH = "mocked/"
 
-    def __init__(self, config: Config, params: Dictionary):
+    DEFAULT_SCREEN_SIZE_WIDTH = 250
+    DEFAULT_SCREEN_SIZE_HEIGHT = 122
+
+    def __init__(self, config: Config, params: Dictionary = None):
 
         # Possible runtime parameters
+        if params is None:
+            params = Dictionary()
         self._parameters = params
 
         # Config is mandatory
@@ -41,35 +47,41 @@ class EinkDisplay:
         self._config = config
 
         # Common Logger
-        self._logger = Logger(config=config, base_path=self._parameters.get("base_path", "")).get_logger()
-        
+        self._logger = Logger(
+            config=config, base_path=self._parameters.get("base_path", "")
+        ).get_logger()
+
         # Initialise the display
         self._initialise_display()
 
         # Initialise fonts
         self._initialise_fonts()
-    
-    def create_canvas(self, reset_base_image = True):
+
+    def create_canvas(self, reset_base_image=True):
         if reset_base_image:
             self._reset_image()
 
         image = self._get_image(True)
         return ImageDraw.Draw(image)
-    
+
     def display(self):
         if (not self._is_gpio_allowed()):
-            file_path = self._config.get("storage.path", self.DEFAULT_STORAGE_PATH) + self.DEFAULT_MOCKED_IMAGES_PATH + time.strftime("%Y%m%d-%H%M%S") + ".png"
+            file_path = self._config.get(
+                "storage.path", self.DEFAULT_STORAGE_PATH
+            ) + self.DEFAULT_MOCKED_IMAGES_PATH + time.strftime("%Y%m%d-%H%M%S") + ".png"
             self._working_image.save(file_path)
-            file_path = self._config.get("storage.path", self.DEFAULT_STORAGE_PATH) + self.DEFAULT_MOCKED_IMAGES_PATH + "_latest.png"
+            file_path = self._config.get(
+                "storage.path", self.DEFAULT_STORAGE_PATH
+            ) + self.DEFAULT_MOCKED_IMAGES_PATH + "_latest.png"
             self._working_image.save(file_path)
         else:
             if self._config.get("display.rotate", False):
                 self._working_image = self._working_image.rotate(180)
-            
+
             # The example uses display_fast(). Tests show that display() works. Now testing display_fast().
             # self._epd.display(self._epd.getbuffer(self._working_image))
             self._epd.display_fast(self._epd.getbuffer(self._working_image))
-    
+
     def clear(self):
         if (self._is_gpio_allowed()):
             self._epd.Clear(0xFF)
@@ -77,28 +89,28 @@ class EinkDisplay:
             pass
         # Needed to clean up the canvas.
         self._working_image = None
-    
+
     def test(self):
         logging.info("Drawing on the image...")
         draw = self.create_canvas()
-        draw.rectangle([(0,0),(50,50)],outline = 0)
-        draw.rectangle([(55,0),(100,50)],fill = 0)
-        draw.line([(0,0),(50,50)], fill = 0,width = 1)
-        draw.line([(0,50),(50,0)], fill = 0,width = 1)
-        draw.chord((10, 60, 50, 100), 0, 360, fill = 0)
-        draw.ellipse((55, 60, 95, 100), outline = 0)
-        draw.pieslice((55, 60, 95, 100), 90, 180, outline = 0)
-        draw.pieslice((55, 60, 95, 100), 270, 360, fill = 0)
-        draw.polygon([(110,0),(110,50),(150,25)],outline = 0)
-        draw.polygon([(190,0),(190,50),(150,25)],fill = 0)
-        draw.text((120, 60), 'e-Paper demo', font = self.FONT_SMALL, fill = 0)
-        draw.text((110, 90), u'微雪电子', font = self.FONT_BIG, fill = 0)
+        draw.rectangle([(0, 0), (50, 50)], outline=0)
+        draw.rectangle([(55, 0), (100, 50)], fill=0)
+        draw.line([(0, 0), (50, 50)], fill=0, width=1)
+        draw.line([(0, 50), (50, 0)], fill=0, width=1)
+        draw.chord((10, 60, 50, 100), 0, 360, fill=0)
+        draw.ellipse((55, 60, 95, 100), outline=0)
+        draw.pieslice((55, 60, 95, 100), 90, 180, outline=0)
+        draw.pieslice((55, 60, 95, 100), 270, 360, fill=0)
+        draw.polygon([(110, 0), (110, 50), (150, 25)], outline=0)
+        draw.polygon([(190, 0), (190, 50), (150, 25)], fill=0)
+        draw.text((120, 60), 'e-Paper demo', font=self.FONT_SMALL, fill=0)
+        draw.text((110, 90), u'微雪电子', font=self.FONT_BIG, fill=0)
         # image = image.rotate(180) # rotate
         self.display()
         time.sleep(2)
         self.clear()
         time.sleep(2)
-    
+
     def _get_image(self, clear_background: bool = True):
         """
         Returns the image that is being prepared to show
@@ -107,10 +119,16 @@ class EinkDisplay:
         """
         if self._working_image is None:
             # # Apparently, the e-ink display is rotated 90 degrees, so swap coordinates for real GPIO work.
-            if (self._is_gpio_allowed()): 
-                self._working_image = Image.new('1', (self._screen_size.y, self._screen_size.x), 255 if clear_background else 0)
-            else:    
-                self._working_image = Image.new('1', (self._screen_size.x, self._screen_size.y), 255 if clear_background else 0)
+            if (self._is_gpio_allowed()):
+                self._working_image = Image.new(
+                    '1', (self._screen_size.y, self._screen_size.x),
+                    255 if clear_background else 0
+                )
+            else:
+                self._working_image = Image.new(
+                    '1', (self._screen_size.x, self._screen_size.y),
+                    255 if clear_background else 0
+                )
         return self._working_image
 
     def _reset_image(self):
@@ -119,11 +137,11 @@ class EinkDisplay:
         """
         if self._working_image is not None:
             self._working_image = None
-    
+
     def _is_gpio_allowed(self):
         import platform
 
-        os = platform.system()        
+        os = platform.system()
         if (os.lower() != "linux"):
             self._logger.warning("OS is not Linux, auto mocking eInk")
             return False
@@ -131,8 +149,7 @@ class EinkDisplay:
             self._logger.warning("Mocking eInk by Config")
             return False
         return True
-        
-    
+
     def _initialise_display(self):
         """
         Initialisation of the actual e-Ink controller
@@ -143,13 +160,16 @@ class EinkDisplay:
         """
 
         # Initialise the paths
-        self._pic_dir = os.path.join(__file__, 'vendor', 'pic')
-        libdir = os.path.join(__file__, '..', 'lib')
+        self._pic_dir = os.path.join(os.path.dirname(__file__), '..', 'vendor', 'pic')
+        libdir = os.path.join(os.path.dirname(__file__), '..', 'vendor')
 
         # Don't initialise if not allowed
         if (not self._is_gpio_allowed()):
             # Setup base data
-            self._screen_size = Point(self._config.get("display.size.x"), self._config.get("display.size.y"))
+            self._screen_size = Point(
+                self._config.get("display.size.x", self.DEFAULT_SCREEN_SIZE_WIDTH),
+                self._config.get("display.size.y", self.DEFAULT_SCREEN_SIZE_HEIGHT)
+            )
             self._logger.warning("GPIO is not allowed, avoiding initializing eInk")
             return
 
@@ -174,7 +194,7 @@ class EinkDisplay:
 
         # Setup base data
         self._screen_size = Point(self._epd.width, self._epd.height)
-    
+
     def _initialise_fonts(self):
         """
         Initialise the fonts BIG, MEDIUM and SMALL.
@@ -199,13 +219,15 @@ class EinkDisplay:
             medium_size = self._parameters.get("display.fonts.medium")
         elif (self._config.key_exists("display.fonts.medium")):
             medium_size = self._config.get("display.fonts.medium")
-        self.FONT_MEDIUM = ImageFont.truetype(os.path.join(self._pic_dir, 'Font.ttc'), medium_size)
+        self.FONT_MEDIUM = ImageFont.truetype(
+            os.path.join(self._pic_dir, 'Font.ttc'), medium_size
+        )
 
         # Small size
         if (self._parameters.key_exists("display.fonts.small")):
             small_size = self._parameters.get("display.fonts.small")
         elif (self._config.key_exists("display.fonts.small")):
             small_size = self._config.get("display.fonts.small")
-        self.FONT_SMALL = ImageFont.truetype(os.path.join(self._pic_dir, 'Font.ttc'), small_size)
-    
-    
+        self.FONT_SMALL = ImageFont.truetype(
+            os.path.join(self._pic_dir, 'Font.ttc'), small_size
+        )
